@@ -312,11 +312,16 @@ class MediaProcessor:
             return stream.metadata.get('title')
 
         channels = options.get("channels", 0)
+        codec = options.get('codec', '')       
         output = "Audio"
         if channels == 1:
             output = "Mono"
         elif channels == 2:
             output = "Stereo"
+            if 'aac' in str(codec).lower():
+                output+= ' (AAC)'
+            elif 'ac3' in str(codec).lower():
+                output+= ' (AC3)'                
         elif channels > 2:
             output = "%d.1 Channel" % (channels - 1)
 
