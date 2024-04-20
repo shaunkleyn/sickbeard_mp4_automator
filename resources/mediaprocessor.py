@@ -233,12 +233,23 @@ class MediaProcessor:
             input_extension = self.parseFile(inputfile)[2]
             output_extension = self.parseFile(outputfile)[2]
 
+            # Run any post process scripts
+            # postprocessor = PostProcessor(outputfile, self.log, wait=self.settings.waitpostprocess)
+            # #postprocessor.setEnv(mediatype, tmdbid, season, episode)
+            # postprocessor.run_scripts()
+
             rsi = 0
             if self.settings.output_format in ['mkv'] and self.settings.relocate_moov:
                 self.log.debug("Relocate MOOV enabled but format is %s, adding reserve_index_space parameter.")
                 rsi = info.format.duration / (60 * 60)
                 rsi = int(rsi) if rsi == int(rsi) else int(rsi) + 1
                 rsi = rsi * 50
+
+            # Run any post process scripts
+            #postprocessor = PostProcessor(outputfile, self.log, wait=self.settings.waitpostprocess)
+            # postprocessor.setEnv(mediatype, tmdbid, season, episode)
+            #postprocessor.run_scripts()
+
 
             return {'input': inputfile,
                     'input_extension': input_extension,
