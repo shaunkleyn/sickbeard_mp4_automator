@@ -237,3 +237,7 @@ pip-log.txt
 ## VS Code
 #################
 .vscode
+history.txt
+run.cmd
+watermark.png
+config/*
