@@ -931,7 +931,7 @@ class MediaProcessor:
                 # Custom channel based filters
                 ua_afilterchannel = self.settings.afilterchannels.get(a.audio_channels, {}).get(2)
                 if ua_afilterchannel:
-                    ua_filter = "%s,%s" % (ua_filter, ua_afilterchannel) if ua_filter else ua_afilterchannel
+                    ua_filter = "%s,%s" % (ua_afilterchannel, ua_filter) if ua_filter else ua_afilterchannel
                     self.log.debug("Found an audio filter for converting from %d channels to %d channels. Applying filter %s to UA." % ((a.audio_channels, 2, ua_afilterchannel)))
 
                 # Bitrate calculations/overrides
@@ -1045,7 +1045,7 @@ class MediaProcessor:
                 # Custom channel based filters
                 afilterchannel = self.settings.afilterchannels.get(a.audio_channels, {}).get(audio_channels)
                 if afilterchannel:
-                    afilter = "%s,%s" % (afilter, afilterchannel) if afilter else afilterchannel
+                    afilter = "%s,%s" % (afilterchannel, afilter) if afilter else afilterchannel
                     self.log.debug("Found an audio filter for converting from %d channels to %d channels. Applying filter %s." % (a.audio_channels, audio_channels, afilterchannel))
 
                 # Sample rates
