@@ -47,12 +47,15 @@ import json
 import traceback
 
 # Sanity checks for path string
-MP4folder = os.environ['NZBPO_MP4_FOLDER'].strip()
-MP4folder = MP4folder.replace('"', '')
-MP4folder = MP4folder.replace("'", "")
-MP4folder = MP4folder.replace("\\", "/")
-if not(MP4folder.endswith("/")):
-    MP4folder += "/"
+#INFO#print Setting MP4folder
+MP4folder = ''
+if 'NZBPO_MP4_FOLDER' in os.environ:
+    MP4folder = os.environ['NZBPO_MP4_FOLDER'].strip()
+    MP4folder = MP4folder.replace('"', '')
+    MP4folder = MP4folder.replace("'", "")
+    MP4folder = MP4folder.replace("\\", "/")
+    if not(MP4folder.endswith("/")):
+        MP4folder += "/"
 #DEBUG#print MP4folder+" the original is "+os.environ['NZBPO_MP4_FOLDER']
 
 output_dir = None
@@ -81,6 +84,7 @@ try:
     from resources.mediaprocessor import MediaProcessor
     from resources.log import getLogger
     from autoprocess import autoProcessTV, autoProcessTVSR, sonarr, radarr
+    from resources.metadata import Metadata, MediaType
 except ImportError:
     print("[ERROR] Wrong path to sickbeard_mp4_automator: " + os.environ['NZBPO_MP4_FOLDER'])
     print("[ERROR] %s" % traceback.print_exc())
