@@ -14,7 +14,10 @@ def getHost(host='localhost', port=8080, ssl=False):
     protocol = "https://" if ssl else "http://"
     return protocol + host + ":" + str(port) + "/"
 
-
+def progressOutput(timecode, debug):
+    log.info(timecode)
+    log.debug(debug)
+    
 log = getLogger("qBittorrentPostProcess")
 
 log.info("qBittorrent post processing started.")
@@ -104,7 +107,16 @@ try:
                 log.exception("Unable to make output directory %s." % settings.output_dir)
 
         mp = MediaProcessor(settings)
-
+        log.info("Retrieving active torrents")
+        activeTorrents = qb.torrents(filters=['active'])
+        log.info(f'{len(activeTorrents)} active torrents' )
+        
+        log.info("Pausing torrents")
+        for torrent in activeTorrents:
+            log.info(f'Pausing {torrent.name}')
+            qb.pause(torrent.hash)
+        #qb.pause_all()
+        
         if single_file:
             # single file
             inputfile = content_path
@@ -112,7 +124,7 @@ try:
             if info:
                 log.info("Processing file %s." % inputfile)
                 try:
-                    output = mp.process(inputfile, reportProgress=True, info=info)
+                    output = mp.process(inputfile, reportProgress=True, info=info, progressOutput=progressOutput)
                     if not output:
                         log.error("No output file generated for single torrent download.")
                         sys.exit(1)
@@ -128,7 +140,7 @@ try:
                     if info and inputfile not in ignore:
                         log.info("Processing file %s." % inputfile)
                         try:
-                            output = mp.process(inputfile, info=info)
+                            output = mp.process(inputfile, info=info,reportProgress=True, progressOutput=progressOutput)
                             if output and output.get('output'):
                                 ignore.append(output.get('output'))
                             else:
@@ -142,6 +154,11 @@ try:
                 sys.exit(1)
 
         path = settings.output_dir
+        
+        log.info("Resuming torrents")
+        for torrent in activeTorrents:
+            log.info(f'Resuming {torrent.name}')
+            qb.resume(torrent.hash)
     else:
         suffix = "copy"
         # name = name[:260-len(suffix)]
