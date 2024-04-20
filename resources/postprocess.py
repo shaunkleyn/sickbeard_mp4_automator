@@ -4,6 +4,7 @@ import json
 from subprocess import Popen, PIPE
 from resources.extensions import bad_post_files, bad_post_extensions
 from resources.metadata import MediaType
+import subprocess
 
 
 class PostProcessor:
@@ -24,7 +25,7 @@ class PostProcessor:
     def gather_scripts(self):
         self.log.debug("Gathering scripts.")
         current_directory = os.path.dirname(os.path.realpath(__file__))
-        post_process_directory = os.path.join(current_directory, '../post_process')
+        post_process_directory = os.path.join(os.path.dirname(current_directory), 'post_process')
         scripts = []
         for script in sorted(os.listdir(post_process_directory)):
             if os.path.splitext(script)[1] in bad_post_extensions or os.path.isdir(script) or script in bad_post_files:
