@@ -106,13 +106,24 @@ if 'NZBOP_SCRIPTDIR' in os.environ and not os.environ['NZBOP_VERSION'][0:5] < '1
     category = os.environ['NZBPP_CATEGORY'].lower().strip()  # NZB Category to determine destination
     #DEBUG#print "Category is %s." % category
 
-    sonarrcat = os.environ['NZBPO_SONARR_CAT'].lower().strip()
-    radarrcat = os.environ['NZBPO_RADARR_CAT'].lower().strip()
-    sickbeardcat = os.environ['NZBPO_SICKBEARD_CAT'].lower().strip()
-    sickragecat = os.environ['NZBPO_SICKRAGE_CAT'].lower().strip()
-    bypass = os.environ['NZBPO_BYPASS_CAT'].lower().strip()
+    sonarrcat = os.environ['NZBPO_SONARR_CAT'].lower().split(',')
+    radarrcat = os.environ['NZBPO_RADARR_CAT'].lower().split(',')
+    sickbeardcat = os.environ['NZBPO_SICKBEARD_CAT'].lower().split(',')
+    sickragecat = os.environ['NZBPO_SICKRAGE_CAT'].lower().split(',')
+    bypass = os.environ['NZBPO_BYPASS_CAT'].lower().split(',')
 
-    categories = [sickbeardcat, sonarrcat, radarrcat, sickragecat, bypass]
+    sonarrcat = [s.strip() for s in sonarrcat]
+    radarrcat = [s.strip() for s in radarrcat]
+    sickbeardcat = [s.strip() for s in sickbeardcat]
+    sickragecat = [s.strip() for s in sickragecat]
+    bypass = [s.strip() for s in bypass]
+
+    categories = []
+    categories += sonarrcat
+    categories += radarrcat
+    categories += sickbeardcat
+    categories += sickragecat
+    categories += bypass
 
     log.debug("Path: %s" % path)
     log.debug("NZB: %s" % nzb)
@@ -218,29 +229,29 @@ if 'NZBOP_SCRIPTDIR' in os.environ and not os.environ['NZBOP_VERSION'][0:5] < '1
             sys.exit(POSTPROCESS_ERROR)
         if settings.output_dir:
             path = settings.output_dir
-    if (sickbeardcat.startswith(category)):
+    if (category in sickbeardcat):
         #DEBUG#print "Sickbeard Processing Activated"
         autoProcessTV.processEpisode(path, settings, nzb, pathMapping=path_mapping)
         sys.exit(POSTPROCESS_SUCCESS)
-    elif (sonarrcat.startswith(category)):
+    elif (category in sonarrcat):
         #DEBUG#print "Sonarr Processing Activated"
         success = sonarr.processEpisode(path, settings, True, importMode="Move", pathMapping=path_mapping)
         if success:
             sys.exit(POSTPROCESS_SUCCESS)
         else:
             sys.exit(POSTPROCESS_NONE)
-    elif (radarrcat.startswith(category)):
+    elif (category in radarrcat):
         #DEBUG#print "Radarr Processing Activated"
         success = radarr.processMovie(path, settings, True, pathMapping=path_mapping)
         if success:
             sys.exit(POSTPROCESS_SUCCESS)
         else:
             sys.exit(POSTPROCESS_NONE)
-    elif (sickragecat.startswith(category)):
+    elif (category in sickragecat):
         #DEBUG#print "Sickrage Processing Activated"
         autoProcessTVSR.processEpisode(path, settings, nzb, pathMapping=path_mapping)
         sys.exit(POSTPROCESS_SUCCESS)
-    elif (bypass.startswith(category)):
+    elif (category in bypass):
         #DEBUG#print "Bypass Further Processing"
         sys.exit(POSTPROCESS_NONE)
 
