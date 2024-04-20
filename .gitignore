@@ -241,3 +241,5 @@ history.txt
 run.cmd
 watermark.png
 config/*
+.git*
+.mgit
