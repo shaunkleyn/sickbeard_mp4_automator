@@ -312,7 +312,8 @@ class MediaProcessor:
             return stream.metadata.get('title')
 
         channels = options.get("channels", 0)
-        codec = options.get('codec', '')       
+        codec = options.get('codec', '')
+        filter = options.get('filter', '')
         output = "Audio"
         if channels == 1:
             output = "Mono"
@@ -321,9 +322,13 @@ class MediaProcessor:
             if 'aac' in str(codec).lower():
                 output+= ' (AAC)'
             elif 'ac3' in str(codec).lower():
-                output+= ' (AC3)'                
+                output+= ' (AC3)'  
         elif channels > 2:
             output = "%d.1 Channel" % (channels - 1)
+
+        if 'comp' in str(filter).lower():
+            output = output.replace(')', '')
+            output+= ' Normalized)'
 
         disposition = stream.disposition
         for dispo in BaseCodec.DISPO_STRINGS:
