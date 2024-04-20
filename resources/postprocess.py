@@ -34,6 +34,7 @@ class PostProcessor:
             else:
                 self.log.debug("Script added: %s." % script)
                 scripts.append(os.path.join(post_process_directory, script))
+                self.log.debug(os.path.join(post_process_directory, script))
         return scripts
 
     def setEnv(self, mediatype, tmdbid, season=None, episode=None):
