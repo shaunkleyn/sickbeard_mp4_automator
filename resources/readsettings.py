@@ -182,6 +182,7 @@ class ReadSettings:
             'force-filter': False,
             'sample-rates': '',
             'sample-format': '',
+            'atmos-force-copy': False,
             'copy-original': False,
             'aac-adtstoasc': False,
             'ignored-dispositions': '',
@@ -613,6 +614,7 @@ class ReadSettings:
         self.aforcefilter = config.getboolean(section, 'force-filter')
         self.audio_samplerates = [int(x) for x in config.getlist(section, "sample-rates") if x.isdigit()]
         self.audio_sampleformat = config.get(section, 'sample-format')
+        self.audio_atmos_force_copy = config.getboolean(section, 'atmos-force-copy')
         self.audio_copyoriginal = config.getboolean(section, "copy-original")
         self.audio_first_language_stream = config.getboolean(section, "first-stream-of-language")
         self.aac_adtstoasc = config.getboolean(section, 'aac-adtstoasc')
@@ -773,7 +775,7 @@ class ReadSettings:
         self.SAB['sr'] = config.get(section, "Sickrage-category").lower()
         self.SAB['sonarr'] = config.get(section, "Sonarr-category").lower()
         self.SAB['radarr'] = config.get(section, "Radarr-category").lower()
-        self.SAB['bypass'] = config.get(section, "Bypass-category").lower()
+        self.SAB['bypass'] = config.getlist(section, "Bypass-category")
         self.SAB['output-dir'] = config.getdirectory(section, "output-directory")
         self.SAB['path-mapping'] = config.getdict(section, "path-mapping", dictseparator="=", lower=False, replace=[])
 
@@ -784,7 +786,7 @@ class ReadSettings:
         self.deluge['sr'] = config.get(section, "sickrage-label").lower()
         self.deluge['sonarr'] = config.get(section, "sonarr-label").lower()
         self.deluge['radarr'] = config.get(section, "radarr-label").lower()
-        self.deluge['bypass'] = config.get(section, "bypass-label").lower()
+        self.deluge['bypass'] = config.getlist(section, "bypass-label")
         self.deluge['convert'] = config.getboolean(section, "convert")
         self.deluge['host'] = config.get(section, "host")
         self.deluge['port'] = config.getint(section, "port")
@@ -801,7 +803,7 @@ class ReadSettings:
         self.qBittorrent['sr'] = config.get(section, "sickrage-label").lower()
         self.qBittorrent['sonarr'] = config.get(section, "sonarr-label").lower()
         self.qBittorrent['radarr'] = config.get(section, "radarr-label").lower()
-        self.qBittorrent['bypass'] = config.get(section, "bypass-label").lower()
+        self.qBittorrent['bypass'] = config.getlist(section, "bypass-label")
         self.qBittorrent['convert'] = config.getboolean(section, "convert")
         self.qBittorrent['output-dir'] = config.getdirectory(section, "output-directory")
         self.qBittorrent['actionbefore'] = config.get(section, "action-before")
@@ -820,7 +822,7 @@ class ReadSettings:
         self.uTorrent['sr'] = config.get(section, "sickrage-label").lower()
         self.uTorrent['sonarr'] = config.get(section, "sonarr-label").lower()
         self.uTorrent['radarr'] = config.get(section, "radarr-label").lower()
-        self.uTorrent['bypass'] = config.get(section, "bypass-label").lower()
+        self.uTorrent['bypass'] = config.getlist(section, "bypass-label")
         self.uTorrent['convert'] = config.getboolean(section, "convert")
         self.uTorrent['output-dir'] = config.getdirectory(section, "output-directory")
         self.uTorrent['webui'] = config.getboolean(section, "webui")
@@ -854,10 +856,8 @@ class ReadSettings:
             fp = open(cfgfile, "w")
             config.write(fp)
             fp.close()
-        except PermissionError:
+        except (OSError, PermissionError, IOError):
             self.log.exception("Error writing to %s due to permissions." % (self.CONFIG_DEFAULT))
-        except IOError:
-            self.log.exception("Error writing to %s." % (self.CONFIG_DEFAULT))
 
     def migrateFromOld(self, config, configFile):
         try:

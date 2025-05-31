@@ -1718,7 +1718,7 @@ class NVEncH265Codec(H265Codec):
         elif 'decode_device' in safe:
             optlist.extend(['-vf', 'hwdownload,format=nv12,hwupload'])
 
-        fmtstr = ':format=%s,hwdownload' % (safe['nvenc_pix_fmt']) if 'nvenc_pix_fmt' in safe else ""
+        fmtstr = ':format=%s' % (safe['nvenc_pix_fmt']) if 'nvenc_pix_fmt' in safe else ""
 
         if 'nvenc_wscale' in safe and 'nvenc_hscale' in safe:
             optlist.extend(['-vf', '%s=w=%s:h=%s%s' % (self.scale_filter, safe['nvenc_wscale'], safe['nvenc_hscale'], fmtstr)])
@@ -1727,7 +1727,7 @@ class NVEncH265Codec(H265Codec):
         elif 'nvenc_hscale' in safe:
             optlist.extend(['-vf', '%s=w=trunc((oh*a)/2)*2:h=%s%s' % (self.scale_filter, safe['nvenc_hscale'], fmtstr)])
         elif fmtstr:
-            optlist.extend(['-vf', fmtstr[1:]])
+            optlist.extend(['-vf', '%s=%s' % (self.scale_filter, fmtstr[1:])])
         return optlist
 
 
@@ -1962,6 +1962,27 @@ class RAV1ECodec(AV1Codec):
     ffmpeg_codec_name = 'librav1e'
 
 
+class AV1QSVCodec(AV1Codec):
+    """
+    QSV AV1 Codec
+    """
+    codec_name = 'av1qsv'
+    ffmpeg_codec_name = 'av1_qsv'
+
+class AV1VAAPICodec(AV1Codec):
+    """
+    AV1 VAAPI Codec
+    """
+    codec_name = 'av1vaapi'
+    ffmpeg_codec_name = 'av1_vaapi'
+
+class NVEncAV1Codec(AV1Codec):
+    """
+    NVEnc AV1 Codec
+    """
+    codec_name = 'av1nvenc'
+    ffmpeg_codec_name = 'av1_nvenc'
+
 class Vp9QSVCodec(Vp9Codec):
     """
     Google VP9 QSV video codec.
@@ -2150,7 +2171,7 @@ video_codec_list = [
     FlvCodec,
     Mpeg1Codec,
     Mpeg2Codec,
-    AV1Codec, SVTAV1Codec, RAV1ECodec
+    AV1Codec, SVTAV1Codec, RAV1ECodec, AV1QSVCodec, AV1VAAPICodec, NVEncAV1Codec
 ]
 
 subtitle_codec_list = [

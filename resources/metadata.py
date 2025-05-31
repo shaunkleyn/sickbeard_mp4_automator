@@ -10,6 +10,7 @@ from io import StringIO
 from mutagen.mp4 import MP4, MP4Cover, MP4StreamInfoError
 from resources.extensions import valid_poster_extensions, tmdb_api_key
 from resources.lang import getAlpha2BCode, getAlpha3TCode
+from converter.ffmpeg import FFMpegConvertError
 
 
 class TMDBIDError(Exception):
@@ -177,7 +178,7 @@ class Metadata:
 
         return None
 
-    def writeTags(self, path, inputfile, converter, artwork=True, thumbnail=False, width=None, height=None, streaming=0):
+    def writeTags(self, path, inputfile, converter, artwork=True, thumbnail=False, width=None, height=None, cues_to_front=False):
         self.log.info("Tagging file: %s." % path)
         if width and height:
             try:
@@ -213,7 +214,7 @@ class Metadata:
                     coverpath = self.getArtwork(path, inputfile, thumbnail=thumbnail)
 
                 try:
-                    conv = converter.tag(path, metadata, coverpath, streaming)
+                    conv = converter.tag(path, metadata, coverpath, cues_to_front=cues_to_front)
                 except KeyboardInterrupt:
                     raise
                 except:
@@ -228,6 +229,10 @@ class Metadata:
                 return True
             except KeyboardInterrupt:
                 raise
+            except FFMpegConvertError as e:
+                self.log.exception("Error tagging file using FFMPEG fallback method, FFMPEG error.")
+                self.log.error(e.cmd)
+                self.log.error(e.output)
             except:
                 self.log.exception("Unexpected tagging error using FFMPEG fallback method.")
                 return False

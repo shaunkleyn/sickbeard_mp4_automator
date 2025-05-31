@@ -69,7 +69,7 @@ class MediaProcessor:
                     if self.settings.tagfile and tagdata:
                         try:
                             self.log.info("Tagging %s with TMDB ID %s." % (inputfile, tagdata.tmdbid))
-                            tagdata.writeTags(output['output'], inputfile, self.converter, self.settings.artwork, self.settings.thumbnail, output['x'], output['y'], streaming=output['rsi'])
+                            tagdata.writeTags(output['output'], inputfile, self.converter, self.settings.artwork, self.settings.thumbnail, output['x'], output['y'], cues_to_front=output['cues_to_front'])
                         except KeyboardInterrupt:
                             raise
                         except:
@@ -233,12 +233,7 @@ class MediaProcessor:
             input_extension = self.parseFile(inputfile)[2]
             output_extension = self.parseFile(outputfile)[2]
 
-            rsi = 0
-            if self.settings.output_format in ['mkv'] and self.settings.relocate_moov:
-                self.log.debug("Relocate MOOV enabled but format is %s, adding reserve_index_space parameter.")
-                rsi = info.format.duration / (60 * 60)
-                rsi = int(rsi) if rsi == int(rsi) else int(rsi) + 1
-                rsi = rsi * 50
+            cues_to_front = self.settings.output_format in ['mkv'] and self.settings.relocate_moov
 
             return {'input': inputfile,
                     'input_extension': input_extension,
@@ -251,7 +246,7 @@ class MediaProcessor:
                     'external_subs': downloaded_subs + ripped_subs,
                     'x': dim['x'],
                     'y': dim['y'],
-                    'rsi': rsi
+                    'cues_to_front': cues_to_front,
                     }
         return None
 
@@ -320,6 +315,10 @@ class MediaProcessor:
         elif channels > 2:
             output = "%d.1 Channel" % (channels - 1)
 
+        if options.get("codec") == 'copy':
+            if self.isAudioStreamAtmos(stream):
+                output += " Atmos"
+
         disposition = stream.disposition
         for dispo in BaseCodec.DISPO_STRINGS:
             if disposition.get(dispo):
@@ -381,6 +380,10 @@ class MediaProcessor:
         except:
             self.log.exception("isValidSource unexpectedly threw an exception, returning None.")
             return None
+
+    # Determine if a sub is an Atmos track
+    def isAudioStreamAtmos(self, stream):
+        return stream.profile and "atmos" in stream.profile.lower()
 
     # Determine if a file can be read by FFPROBE and is a subtitle only
     def isValidSubtitleSource(self, inputfile):
@@ -632,7 +635,7 @@ class MediaProcessor:
     def duplicateStreamSort(self, options, info):
         options.sort(key=lambda x: x['bitrate'], reverse=True)
         options.sort(key=lambda x: self.getSourceStream(x['map'], info).disposition['default'], reverse=True)
-        options.sort(key=lambda x: x['codec'] == "copy", reverse=True)
+        options.sort(key=lambda x: x['codec'] == 'copy', reverse=True)
 
     # Get indexes for sublists
     def sublistIndexes(self, x, y):
@@ -689,14 +692,14 @@ class MediaProcessor:
         self.log.info("Profile: %s." % info.video.profile)
 
         vdebug = "video"
-        vHDR = self.isHDR(info.video)
-        if vHDR:
-            vdebug = vdebug + ".hdr"
+        hdrInput = self.isHDRInput(info.video)
+        if hdrInput:
+            vdebug = vdebug + ".hdrInput"
 
-        vcodecs = self.settings.hdr.get('codec', []) if vHDR and len(self.settings.hdr.get('codec', [])) > 0 else self.settings.vcodec
+        vcodecs = self.settings.hdr.get('codec', []) if hdrInput and len(self.settings.hdr.get('codec', [])) > 0 else self.settings.vcodec
         vcodecs = self.ffprobeSafeCodecs(vcodecs)
         self.log.debug("Pool of video codecs is %s." % (vcodecs))
-        vcodec = "copy" if info.video.codec in vcodecs else vcodecs[0]
+        vcodec = 'copy' if info.video.codec in vcodecs else vcodecs[0]
 
         # Custom
         try:
@@ -733,7 +736,7 @@ class MediaProcessor:
             vcodec = vcodecs[0]
 
         vprofile = None
-        if vHDR and len(self.settings.hdr.get('profile')) > 0:
+        if hdrInput and len(self.settings.hdr.get('profile')) > 0:
             if info.video.profile in self.settings.hdr.get('profile'):
                 vprofile = info.video.profile
             else:
@@ -769,33 +772,33 @@ class MediaProcessor:
                 except:
                     self.log.exception("Error setting VCRF profile information.")
 
-        vfilter = self.settings.hdr.get('filter') or None if vHDR else self.settings.vfilter or None
-        if vHDR and self.settings.hdr.get('filter') and self.settings.hdr.get('forcefilter'):
+        vfilter = self.settings.hdr.get('filter') or None if hdrInput else self.settings.vfilter or None
+        if hdrInput and self.settings.hdr.get('filter') and self.settings.hdr.get('forcefilter'):
             self.log.debug("Video HDR force filter is enabled. Video stream can no longer be copied [hdr-force-filter].")
             vdebug = vdebug + ".hdr-force-filter"
             vcodec = vcodecs[0]
-        elif not vHDR and vfilter and self.settings.vforcefilter:
+        elif not hdrInput and vfilter and self.settings.vforcefilter:
             self.log.debug("Video force filter is enabled. Video stream can no longer be copied [video-force-filter].")
             vfilter = self.settings.vfilter
             vcodec = vcodecs[0]
             vdebug = vdebug + ".force-filter"
 
-        vpreset = self.settings.hdr.get('preset') or None if vHDR else self.settings.preset or None
+        vpreset = self.settings.hdr.get('preset') or None if hdrInput else self.settings.preset or None
 
         vparams = self.settings.codec_params or None
-        if vHDR and self.settings.hdr.get('codec_params'):
+        if hdrInput and self.settings.hdr.get('codec_params'):
             vparams = self.settings.hdr.get('codec_params')
 
         vpix_fmt = None
-        if vHDR and len(self.settings.hdr.get('pix_fmt')) > 0:
+        if hdrInput and len(self.settings.hdr.get('pix_fmt')) > 0:
             if info.video.pix_fmt in self.settings.hdr.get('pix_fmt'):
                 vpix_fmt = info.video.pix_fmt if self.settings.keep_source_pix_fmt else self.settings.hdr.get('pix_fmt')[0]
             else:
                 vpix_fmt = self.settings.hdr.get('pix_fmt')[0]
                 self.log.debug("Overriding video pix_fmt. Codec cannot be copied because pix_fmt is not approved [hdr-pix-fmt].")
-                vdebug = vdebug + ".hdr-pix-fmt"
+                vdebug = vdebug + ".hdr-pix_fmt"
                 vcodec = vcodecs[0]
-        elif not vHDR and len(self.settings.pix_fmt):
+        elif not hdrInput and len(self.settings.pix_fmt):
             if info.video.pix_fmt in self.settings.pix_fmt:
                 vpix_fmt = info.video.pix_fmt if self.settings.keep_source_pix_fmt else self.settings.pix_fmt[0]
             else:
@@ -824,15 +827,21 @@ class MediaProcessor:
                 else:
                     self.log.debug("No viable pix-fmt option found for bit-depth %d, leave as %s." % (vencoder.max_depth, vpix_fmt))
 
-        vframedata = self.normalizeFramedata(info.video.framedata, vHDR) if self.settings.dynamic_params else None
+        vframedata = self.normalizeFramedata(info.video.framedata, hdrInput) if self.settings.dynamic_params else None
         if vpix_fmt and vframedata and "pix_fmt" in vframedata and vframedata["pix_fmt"] != vpix_fmt:
             self.log.debug("Pix_fmt is changing, will not preserve framedata")
             vframedata = None
+            # range_filter = "scale=in_range=full:out_range=limited"
+            # vfilter = vfilter + "," + range_filter if vfilter else range_filter
+
+        hdrOutput = self.isHDROutput(vpix_fmt, bit_depth)
 
         vbsf = None
         if self.settings.removebvs and self.hasBitstreamVideoSubs(info.video.framedata):
             self.log.debug("Found side data type with closed captioning [remove-bitstream-subs]")
             vbsf = "filter_units=remove_types=6"
+        if hdrInput and not hdrOutput:
+            vbsf = vbsf + "|39" if vbsf else "filter_units=remove_types=39"
 
         self.log.debug("Video codec: %s." % vcodec)
         self.log.debug("Video bitrate: %s." % vbitrate)
@@ -846,6 +855,10 @@ class MediaProcessor:
         self.log.debug("Video field order: %s." % vfieldorder)
         self.log.debug("Video width: %s." % vwidth)
         self.log.debug("Video debug %s." % vdebug)
+        self.log.debug("Video framedata: %s." % vframedata)
+        self.log.debug("Video filter: %s." % vfilter)
+        self.log.debug("Video bit depth: %d." % bit_depth)
+        self.log.debug("Video bsf: %s." % vbsf)
         self.log.info("Video codec parameters %s." % vparams)
         self.log.info("Creating %s video stream from source stream %d." % (vcodec, info.video.index))
 
@@ -868,7 +881,7 @@ class MediaProcessor:
             'bsf': vbsf,
             'debug': vdebug,
         }
-        video_settings['title'] = self.videoStreamTitle(info.video, video_settings, hdr=vHDR, tagdata=tagdata)
+        video_settings['title'] = self.videoStreamTitle(info.video, video_settings, hdr=hdrOutput, tagdata=tagdata)
 
         ###############################################################
         # Audio streams
@@ -938,7 +951,7 @@ class MediaProcessor:
                 if self.settings.ua_bitrate == 0:
                     self.log.debug("Attempting to set universal audio stream bitrate based on source stream bitrate.")
                     try:
-                        ua_bitrate = ((a.bitrate / 1000) / a.audio_channels) * 2
+                        ua_bitrate = (((a.bitrate / 1000) if a.bitrate else 0)/ a.audio_channels) * 2
                     except:
                         self.log.warning("Unable to determine universal audio bitrate from source stream %s, defaulting to %d per channel." % (a.index, self.default_channel_bitrate))
                         ua_bitrate = 2 * self.default_channel_bitrate
@@ -1059,7 +1072,7 @@ class MediaProcessor:
             if self.settings.abitrate == 0:
                 self.log.debug("Attempting to set bitrate based on source stream bitrate.")
                 try:
-                    abitrate = ((a.bitrate / 1000) / a.audio_channels) * audio_channels
+                    abitrate = (((a.bitrate / 1000) if a.bitrate else 0) / a.audio_channels) * audio_channels
                 except:
                     self.log.warning("Unable to determine audio bitrate from source stream %s, defaulting to %d per channel." % (a.index, self.default_channel_bitrate))
                     abitrate = audio_channels * self.default_channel_bitrate
@@ -1067,6 +1080,11 @@ class MediaProcessor:
                 self.log.debug("Calculated bitrate of %d exceeds maximum bitrate %d, setting to max value [audio-max-bitrate]." % (abitrate, self.settings.amaxbitrate))
                 abitrate = self.settings.amaxbitrate
                 acodec = self.settings.acodec[0]
+
+            # Force copy if Atmos
+            if self.settings.audio_atmos_force_copy and self.isAudioStreamAtmos(a):
+                self.log.debug("Source audio stream contains Atmos data, forcing codec copy to preserve [audio-atmos-force-copy].")
+                acodec = 'copy'
 
             self.log.debug("Audio codec: %s." % acodec)
             self.log.debug("Channels: %s." % audio_channels)
@@ -1115,7 +1133,7 @@ class MediaProcessor:
                 audio_setting = {
                     'map': a.index,
                     'codec': 'copy',
-                    'bitrate': (a.bitrate / 1000),
+                    'bitrate': (a.bitrate / 1000) if a.bitrate else None,
                     'channels': a.audio_channels,
                     'language': a.metadata['language'],
                     'disposition': adisposition,
@@ -1170,6 +1188,13 @@ class MediaProcessor:
         blocked_subtitle_languages = []
         blocked_subtitle_dispositions = []
         valid_external_subs = []
+
+        self.settings.scodec = self.ffprobeSafeCodecs(self.settings.scodec)
+        self.log.debug("Pool of subtitle text based codecs is %s." % (self.settings.scodec))
+
+        self.settings.scodec_image = self.ffprobeSafeCodecs(self.settings.scodec_image)
+        self.log.debug("Pool of subtitle image based codecs is %s." % (self.settings.scodec_image))
+
         self.log.info("Reading subtitle streams.")
         if not self.settings.ignore_embedded_subs:
             for s in info.subtitle:
@@ -1281,7 +1306,7 @@ class MediaProcessor:
                 self.log.info("Skipping external subtitle file %s, no appropriate codecs found or embed disabled." % (os.path.basename(external_sub.path)))
                 continue
 
-            if self.settings.force_subtitle_defaults and s.disposition.get('default'):
+            if self.settings.force_subtitle_defaults and external_sub.subtitle[0].disposition.get('default'):
                 self.log.debug("External subtitle %s is flagged as default, forcing inclusion [Subtitle.force-default]." % (os.path.basename(external_sub.path)))
             else:
                 if not self.validLanguage(external_sub.subtitle[0].metadata['language'], swl, [] if external_sub.subtitle[0].disposition['forced'] else blocked_subtitle_languages):
@@ -1320,18 +1345,16 @@ class MediaProcessor:
 
         # Burn subtitles
         try:
-            vfilter = self.burnSubtitleFilter(inputfile, info, swl, valid_external_subs, tagdata)
+            burnfilter = self.burnSubtitleFilter(inputfile, info, swl, valid_external_subs, tagdata)
         except:
-            vfilter = None
+            burnfilter = None
             self.log.exception("Encountered an error while trying to determine which subtitle stream for subtitle burn [burn-subtitle].")
-        if vfilter:
+        if burnfilter:
             self.log.debug("Found valid subtitle stream to burn into video, video cannot be copied [burn-subtitles].")
             video_settings['codec'] = vcodecs[0]
             vcodec = vcodecs[0]
-            if video_settings.get('filter'):
-                video_settings['filter'] = "%s, %s" % (video_settings['filter'], vfilter)
-            else:
-                video_settings['filter'] = vfilter
+            video_settings['filter'] = video_settings['filter'] + "," + burnfilter if video_settings.get('filter') else burnfilter
+            self.log.debug("Setting video filter to burn subtitle filter %s." % video_settings['filter'])
             video_settings['debug'] += ".burn-subtitles"
 
         # Sort Options
@@ -2187,7 +2210,7 @@ class MediaProcessor:
         return False
 
     # Check if video stream meets criteria to be considered HDR
-    def isHDR(self, videostream):
+    def isHDRInput(self, videostream):
         if len(self.settings.hdr['space']) < 1 and len(self.settings.hdr['transfer']) < 1 and len(self.settings.hdr['primaries']) < 1:
             self.log.debug("No HDR screening parameters defined, returning false [hdr].")
             return False
@@ -2200,6 +2223,14 @@ class MediaProcessor:
 
         self.log.info("HDR video stream detected for %d." % videostream.index)
         return True
+
+    # Check if output pix_fmt is HDR
+    def isHDROutput(self, pix_fmt, bit_depth):
+        if pix_fmt:
+            hdr_pix_fmts = ["yuv420p10le", "yuv422p10le", "yuv444p10le", "yuv420p12le", "yuv422p12le", "yuv444p12le", "p010le"]
+            return pix_fmt in hdr_pix_fmts and bit_depth >= 10
+        else:
+            return bit_depth >= 10
 
     # Run test conversion of subtitle to see if its image based, does not appear to be any other way to tell dynamically
     def isImageBasedSubtitle(self, inputfile, map):
