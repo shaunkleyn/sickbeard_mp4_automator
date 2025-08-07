@@ -317,9 +317,10 @@ class MediaProcessor:
             if 'aac' in str(codec).lower():
                 output+= ' (AAC)'
             elif 'ac3' in str(codec).lower():
-                output+= ' (AC3)'  
+                output+= ' (AC3)' 
         elif channels > 2:
-            output = "%d.1 Channel" % (channels - 1)
+            # output = "%d.1 Channel" % (channels - 1)
+            output = '"{}.1 Channel"'.format(channels - 1)
         
         if 'comp' in str(filter).lower():
             output = output.replace(')', '')
