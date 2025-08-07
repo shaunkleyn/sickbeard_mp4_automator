@@ -1,0 +1,549 @@
+---
+Converter:
+  ffmpeg: "ffmpeg.exe"  #Path to FFmpeg executable
+  ffprobe: "ffprobe.exe" #Path to FFprobe executable
+  threads: "0" #FFMpeg threads, corresponds to threads parameter, 0 for auto
+  hwaccels: [] # Approved FFmpeg hardware accelerator encoders hwaccels. Ignored if they are unavailable in the build of FFmpeg being used, though other system compatibility checks are up to end user. Potential samples include dxva2, cuvid, qsv, d3d11va, vaapi though anything supported by FFmpeg is possible. Prioritized based on order specified. ffmpeg -hwaccels to see available options
+  hwaccel-decoders: [] # Approved FFmpeg hardware decoders. Ignored if decoder isn't found in the build of FFmpeg it will not be used, you can view decoders with ffmpeg -decoders
+  hwdevices: []  # Dictionary specifying hardware devices for various codecs, if not specified will fall back to FFmpeg defaults. CSV with key:value pairs. Case sensitive
+  hwaccel-output-format:  # Dictionary specifying hwaccel output format for specific hwaccels. CSV with key:value pairs. Can be useful in situations such as 'cuvid' where you want the hwaccel-output-format to be 'cuda'
+  output-directory:  # Optional temporary directory where created files are generated, will be restored to the original folder
+  output-directory-space-ratio: 0.0
+  output-format: mp4 #Wrapped format corresponding to -f in FFmpeg
+  output-extension: mp4 #File extension for created media
+  temp-extension:  # Temporary extension used while files are in process. Useful to prevent files from being scanned prematurely by outside software
+  minimum-size: 0 # Minimum file size in megabytes. Use to ignore small sample files. Set to 0 for no minimum
+  ignored-extensions: nfo, ds_store # Extensions to ignore during directory scans. Can be used for formats like avi or trash files
+  copy-to: [] # Directories in which to make copies of final files, separated by |
+  move-to: [] # Directory in which to move final processed files
+  delete-original: True # Delete original files
+  process-same-extensions: False # Run files with the same input and output extensions through the conversion process. Tagging is not effected. If after options are generated all streams are copy conversion will be skipped. Use with caution alongside universal audio and audio copy-original as streams will keep replicating
+  bypass-if-copying-all: False # Bypass conversion if input and output extensions are the same, the number of input and output streams is equal, and all codecs are set to copy. Stream level metadata (titles, stream sorting, etc) will not be applied if this condition is met
+  # Force conversion regardless of streams being in appropriate format
+  force-convert: False
+  # Run post process scripts
+  post-process: False
+  # Wait for post processing scripts to complete before moving on, can be helpful to prevent asynchronous errors
+  wait-post-process: False
+  # Show full FFmpeg progress line alongside the standard progress bar
+  detailed-progress: False
+  # Value used as the separator for preopts and postopts
+  opts-separator: ,
+  # Additional character separated FFmpeg options placed before main commands, separator character defined by opts-separator
+  preopts: []
+  # Additional character separated FFmpeg options placed after main commands, separator character defined by opts-separator
+  postopts: []
+  # Regular expression (regex) for re.sub to replace invalid characters from torrent names when directories are created
+  regex-directory-replace: 
+    - "^\w\-_\. "
+
+Permissions:
+  chmod: 0664 # Base 8 chmod value
+  uid: -1 # User ID, -1 for executing user. Supports environment variables
+  gid: -1 # Group ID, -1 for executing group. Supports environment variables
+
+Metadata:
+  # Relocate MOOV atom using QTFastStart for MP4 files to optimize for streaming. For MKV files the FFMPEG parameter reserve_index_space will be applied to achieve similar streaming optimization
+  relocate-moov: True
+  # Use full path when guessing file information in manual.py
+  full-path-guess: True
+  # Tag files with metadata from TMDB. MP4 only
+  tag: True
+  # Tag language in 2-3 char language code, defaults to English if not specified
+  tag-language: eng
+  # Download artwork and embed in media. poster, thumb, True, False are valid options
+  download-artwork: poster
+  # List of dispositions that will be ignored from the source file. Leave blank to preserve all disposition data
+  sanitize-disposition: 
+  # Strips any extra metadata that may be carried over from the source file by appending -map_metadata -1 to your FFMPEG command after the input file
+  strip-metadata: False
+  # Preserves any existing title metadata from source material instead of writing clean titles based on disposition
+  keep-titles: False
+
+Video:
+  # Approved video codecs. Codecs not on this list are converted to the first codec on the list
+  codec: 
+    - h264
+    - x264
+  # Maximum bitrate for video in Kb. Values above this range will be down sampled. 0 for no limit
+  max-bitrate: 0 
+  # Dictionary of float values that sets the relative bitrate ratio based on the input/source codec. Blank defaults to 1.0. Example for converting all incoming h264 videos to 60% bitrate and hevc to 80% would be h264:0.6, hevc:0.8. Useful if coming from a less efficient codec with aim of reducing bitrate
+  bitrate-ratio: {}
+  # CRF value, -1 to disable. For VAAPI based codecs CRF is not supported and -qp will be used instead
+  crf: -1
+  # Specify custom quality profiles based on input bitrate. Format is source_bitrate:CRF:maxrate:bufsize. Multiple profiles may be specified. If the source file's bitrate is greater than the source_bitrate that quality profile will be used. Example setting 0:23:4.5M:12M,4100:21:8M:24M,8000:17:10M:30M. With this setting if a video file with a bitrate of 5000 was used, the profile 4100:21:8M;24M would be used resulting in a CRF of 21, maxrate of 8M, and bufsize of 24M. These profiles override the simple single video-crf and video-bitrate setting
+  crf-profiles : []
+  # FFMpeg video encoding present option
+  preset: 
+  # Additional codec specific parameters. Applies only to h264/h265 using the -x264-params and -x265-params options respectively
+  codec-parameters: 
+  # Attempt to fill in codec params by reading framedata
+  dynamic-parameters: False
+  # Maximum video width, videos larger will be down sized
+  max-width: 0
+  # Video profiles. Profiles not on this list are be converted to the first profile on the list
+  profile: []
+  # Maximum video level, videos above will be down sampled. Format example is 4.1
+  max-level: 0.0
+  # Supported pix-fmt list. Formats not on this list are be converted to the first format on the list
+  pix-fmt: []
+  # When decided pix_fmt, the script will attempt to keep the same format as long as it's included on the allowed list if video conversion must take place, set to False to use the first pix_fmt on the list instead if conversion must take place (will not impact conversion needed decisions)
+  prioritize-source-pix-fmt: True
+  # FFmpeg video filter
+  filter: 
+  # Always apply filter and never copy the stream
+  force-filter: False
+HDR:
+  # Approved video codecs if the source is HDR. Codecs not on this list are converted to the first codec on the list. Leave blank to use the same codec pool as non HDR sources
+  codec: [] 
+  # Supported pix-fmt list. Formats not on this list are be converted to the first format on the list
+  pix-fmt: [] 
+  # Required color-space parameters to qualify as HDR. Not an output setting but a screening parameter
+  space: 
+    - bt2020nc
+  # Required color-transfer parameters to qualify as HDR. Not an output setting but a screening parameter
+  transfer: 
+    - smpte2084
+  # Required color-primaries parameters to qualify as HDR. Not an output setting but a screening parameter
+  primaries: 
+    - bt2020
+  # FFMpeg video encoding present option
+  preset:  
+  # Additional codec specific parameters. Applies only to h264/h265 using the -x264-params and -x265-params options respectively but only applied for HDR sources
+  codec-parameters:  
+  # FFmpeg video filter that will apply if source is HDR
+  filter:  
+  # Always apply filter and never copy the stream
+  force-filter: False
+  # Video profiles. Profiles not on this list are be converted to the first profile on the list
+  profile: []
+
+Audio:
+  # Approved audio codecs. Codecs not on this list are converted to the first codec on the list
+  codec: 
+    - libfdk_aac
+  # Approved audio stream languages. Languages not on this list will not be used. Leave blank to approve all languages
+  languages: 
+    - eng
+  # If audio stream language is undefined, assumed this language
+  default-language: eng
+  # Query TMDB for original content audio language and include in list of approved languages dynamically
+  include-original-language: False
+  # Only include the first occurrence of an audio stream of language
+  first-stream-of-language: True
+  # Bitrate of audio stream per channel. Multiple by number of channels to get stream bitrate. Use 0 to attempt to guess based on source bitrate
+  channel-bitrate: 192
+  # Set a variable bitrate / quality profile if supported by your audio codec, range and value is codec dependent
+  variable-bitrate: 192
+  # Maximum audio stream bitrate regardless of channels. 0 for no limit
+  max-bitrate: 192
+  # Maximum number of audio channels per stream. Streams with more channels will be down sampled
+  max-channels: 2
+  # FFmpeg audio profile
+  profile: 
+  pre-filter:  
+  # FFmpeg audio filter
+  filter:  
+  post-filter: 
+  # Always apply filter and never copy the stream
+  force-filter: True
+  # Approved audio sample rates, rates not on the approved list will be converted to the first rate on the list
+  sample-rates: []
+  # Set a sample format. This is a basic value and will not force conversion when remuxing would otherwise be appropriate but can be applied to any stream conversion that would otherwise take place. Accepts values displayed on ffmpeg -sample_fmts not bit depth values
+  sample-format:  
+  # Always include a copy of the original audio stream
+  copy-original: True
+  aac-adtstoasc: False
+  # Ignore streams with specific disposition flags, such as commentary. Only valid FFMpeg dispositions values can be included here. See disposition section of documentation for potential values
+  ignored-dispositions: []
+  force-default: True
+  # Only use one stream from source video per combination of dispositions per language
+  unique-dispositions: False
+  # CSV list of codec combinations that when found in the order specified will be analyzed to determine if they may represent different quality version of the same stream. Example would be trudhd:ac3:aac, truehd:ac3, ac3:aac. This will do is analyze the source audio for any combination of those 2 codecs in order, if any combinations are found, it then checks to see if those tracks have the same disposition and language (this should prevent things like commentary tracks from getting flagged inadvertently)
+  stream-codec-combinations: []
+  remove-surround-after-downmix: True
+  normalize: 
+    normalization-type: ebu
+    target-level: -23
+    loudness-range-target: 7.0
+    keep-loudness-range-target: 
+    keep-lra-above-loudness-range-target: 
+    true-peak: -2.0
+    ebu-offset-gain: 0.0
+    dual-mono: False
+    dynamic-mode: False
+  sorting:
+    - language
+    - channels.d
+    - map
+    - d.comment
+    default:
+      - channels
+      - map
+      - d.comment
+    codecs:
+      - aac
+      - ac3
+  universal-audio:
+    # Approved audio codecs. Codecs not on this list are converted to the first codec on the list. Leave blank to disable universal audio
+    codec: []
+    # Bitrate of universal audio stream per channel. Multiple by number of channels to get stream bitrate. Use 0 to attempt to guess based on source bitrate
+    channel-bitrate: 192
+    # Set a variable bitrate / quality profile if supported by your audio codec, range and value is codec dependent
+    variable-bitrate: 192
+    # Only create a universal audio stream for the first audio stream encountered
+    first-stream-only: False
+    pre-filter: 
+    # FFmpeg audio filter
+    filter: compand=attacks=0:points=-80/-90|-45/-45|-27/-25|0/-7|20/-7
+    post-filter: 
+    # FFmpeg audio profile
+    profile: 
+    # Always apply filter and never copy the stream
+    force-filter: False
+  channel-filters:
+    # Filter string for the specified input and output channel combination
+    6-2: lowpass=c=LFE:f=120,pan=stereo|FL=.3FL+.21FC+.3FLC+.3SL+.3BL+.21BC+.21LFE|FR=.3FR+.21FC+.3FRC+.3SR+.3BR+.21BC+.21LFE
+
+
+Audio.Sorting:
+  # List of language stream sorting keys
+  sorting: 
+    - language
+    - channels.d
+    - map
+    - d.comment
+  # List of default stream selection sorting keys (if you don't want default stream to be the first stream)
+  default-sorting: 
+    - channels
+    - map
+    - d.comment
+  # Custom list of codecs to be used for sorting with the codecs key
+  codecs: 
+    - aac
+    - ac3
+
+# Use these settings create an additional high-compatibility stereo audio stream from more complex audio streams
+Universal Audio:
+  # Approved audio codecs. Codecs not on this list are converted to the first codec on the list. Leave blank to disable universal audio
+  codec: []
+  # Bitrate of universal audio stream per channel. Multiple by number of channels to get stream bitrate. Use 0 to attempt to guess based on source bitrate
+  channel-bitrate: 192
+  # Set a variable bitrate / quality profile if supported by your audio codec, range and value is codec dependent
+  variable-bitrate: 192
+  # Only create a universal audio stream for the first audio stream encountered
+  first-stream-only: False
+  pre-filter: 
+  # FFmpeg audio filter
+  filter: compand=attacks=0:points=-80/-90|-45/-45|-27/-25|0/-7|20/-7
+  post-filter: 
+  # FFmpeg audio profile
+  profile: 
+  # Always apply filter and never copy the stream
+  force-filter: False
+  normalize: True
+
+# Use these settings to specify specific filters for transitioning from one set of audio channels to another set. A 6-2 sample which will be applied only if transitioning from a 6 channel source to a 2/stereo channel output is provided but any number of combinations can be defined here
+Audio.ChannelFilters:
+  # Filter string for the specified input and output channel combination
+  6-2: lowpass=c=LFE:f=120,pan=stereo|FL=.3FL+.21FC+.3FLC+.3SL+.3BL+.21BC+.21LFE|FR=.3FR+.21FC+.3FRC+.3SR+.3BR+.21BC+.21LFE
+
+Audio.Normalize:
+  normalization-type: ebu
+  target-level: -23
+  loudness-range-target: 7.0
+  keep-loudness-range-target: 
+  keep-lra-above-loudness-range-target: 
+  true-peak: -2.0
+  ebu-offset-gain: 0.0
+  dual-mono: False
+  dynamic-mode: False
+
+Subtitle:
+  # Approved subtitle codecs. Codecs not on this list are converted to the first codec on the list
+  codec: 
+    - srt
+  codec-image-based:  
+  languages: eng,english
+  default-language: english
+  include-original-language: False
+  first-stream-of-language: False
+  encoding: True
+  burn-subtitles: False
+  burn-dispositions:  
+  embed-subs: True
+  embed-image-subs: False
+  embed-only-internal-subs: False
+  filename-dispositions: forced
+  ignore-embedded-subs: False
+  ignored-dispositions:  
+  force-default: False
+  unique-dispositions: False
+  attachment-codec:  
+  remove-bitstream-subs: False
+
+Subtitle.Sorting:
+  sorting: language, d.comment, d.default.d, d.forced.d
+  burn-sorting: language, d.comment, d.default.d, d.forced.d
+  codecs:  
+
+Subtitle.CleanIt:
+  enabled: False
+  config-path:  
+  tags:  
+
+Subtitle.FFSubsync:
+  enabled: False
+
+Subtitle.Subliminal:
+  download-subs: False
+  download-forced-subs: False
+  include-hearing-impaired-subs: False
+  providers:  
+
+Subtitle.Subliminal.Auth:
+  opensubtitles:  
+  tvsubtitles:  
+
+Sonarr:
+  host:  
+  port: 443
+  apikey: d4f9ec92776f449d812c2a34c9f24091
+  ssl: True
+  webroot:  
+  force-rename: True
+  rescan: False
+  block-reprocess: False
+  in-progress-check: True
+
+Radarr:
+  host: radarr.mediaservarr.co.za
+  port: 443
+  apikey: b293e113389a48ebbe95e92177aea8ee
+  ssl: True
+  webroot:  
+  force-rename: False
+  rescan: True
+  block-reprocess: False
+  in-progress-check: True
+
+Sickbeard:
+  host: localhost
+  port: 8081
+  ssl: False
+  apikey:  
+  webroot:  
+  username:  
+  password:  
+
+Sickrage:
+  host: localhost
+  port: 8081
+  ssl: False
+  apikey:  
+  webroot:  
+  username:  
+  password:  
+
+SABNZBD:
+  convert: True
+  sickbeard-category: sickbeard
+  sickrage-category: sickrage
+  sonarr-category: series,sonarr-requested
+  radarr-category: radarr
+  bypass-category: bypass
+  output-directory:  
+  path-mapping:  
+
+Deluge:
+  sickbeard-label: sickbeard
+  sickrage-label: sickrage
+  sonarr-label: sonarr
+  radarr-label: radarr
+  bypass-label: bypass
+  convert: True
+  host: localhost
+  port: 58846
+  username:  
+  password:  
+  output-directory:  
+  remove: False
+  path-mapping:  
+
+qBittorrent:
+  sickbeard-label: sickbeard
+  sickrage-label: sickrage
+  sonarr-label: tv-sonarr
+  radarr-label: radarr
+  bypass-label: bypass
+  convert: True
+  action-before:  
+  action-after:  
+  host: 127.0.0.1
+  port: 8183
+  ssl: False
+  username: shaunkleyn
+  password: asc8485
+  output-directory: \\MEDIASERVARR\Internal\DownloadAgents\qbittorrent\processed
+  path-mapping: \\\MEDIASERVARR\Internal\DownloadAgents\qbittorrent\processed\=/mnt/pleximus/I:/DownloadAgents/qbittorrent/complete
+
+uTorrent:
+  sickbeard-label: sickbeard
+  sickrage-label: sickrage
+  sonarr-label: sonarr
+  radarr-label: radarr
+  bypass-label: bypass
+  convert: True
+  webui: False
+  action-before:  
+  action-after:  
+  host: localhost
+  ssl: False
+  port: 8080
+  username:  
+  password:  
+  output-directory:  
+  path-mapping:  
+
+Plex:
+  username: shaunkleyn
+  password: v8-NG34sDIWhxUvolY6%%
+  servername: MediaServarr
+  host: 192.168.8.100
+  port: 32400
+  refresh: False
+  token: fy2PqniydrYL6y6_18bm
+  ssl: True
+  ignore-certs: False
+  path-mapping:  
+
+
+
+
+
+#################
+HDR:
+  space: "bt2020nc"
+  transfer: "smpte2084"
+  primaries: "bt2020"
+  force-filter: False
+Audio:
+  codec: "ac3"
+  include-original-language: True
+  first-stream-of-language: False
+  channel-bitrate: "128"
+  variable-bitrate: "0"
+  max-bitrate: "0"
+  max-channels: "0"
+  force-filter: False
+  copy-original: False
+  aac-adtstoasc: False
+  force-default: False
+  unique-dispositions: False
+Audio.Sorting:
+  sorting: "language, channels.d, map, d.comment"
+  default-sorting: "channels.d, map, d.comment"
+Universal Audio:
+  codec: "aac"
+  channel-bitrate: "128"
+  variable-bitrate: "0"
+  first-stream-only: False
+  force-filter: False
+Audio.ChannelFilters:
+  6-2: "pan"
+Audio.Normalize:
+  type: "peak"
+Subtitle:
+  codec: "mov_text"
+  force-default: True
+  include-original-language: False
+  first-stream-of-language: False
+  burn-subtitles: False
+  embed-subs: True
+  embed-image-subs: False
+  embed-only-internal-subs: False
+  filename-dispositions: "forced"
+  ignore-embedded-subs: False
+  force-default: False
+  unique-dispositions: False
+  remove-bitstream-subs: False
+Subtitle.Sorting:
+  sorting: "language, d.comment, d.default.d, d.forced.d"
+  burn-sorting: "language, d.comment, d.default.d, d.forced.d"
+Subtitle.CleanIt:
+  enabled: False
+Subtitle.FFSubsync:
+  enabled: False
+Subtitle.Subliminal:
+  download-subs: False
+  download-forced-subs: False
+  include-hearing-impaired-subs: False
+Subtitle.Subliminal.Auth:
+Sonarr:
+  host: "localhost"
+  port: "8989"
+  ssl: False
+  force-rename: False
+  rescan: True
+  in-progress-check: True
+  block-reprocess: False
+Radarr:
+  host: "localhost"
+  port: "7878"
+  ssl: False
+  force-rename: False
+  rescan: True
+  in-progress-check: True
+  block-reprocess: False
+Sickbeard:
+  host: "localhost"
+  port: "8081"
+  ssl: False
+Sickrage:
+  host: "localhost"
+  port: "8081"
+  ssl: False
+SABNZBD:
+  convert: True
+  sickbeard-category: "sickbeard"
+  sickrage-category: "sickrage"
+  sonarr-category: "sonarr"
+  radarr-category: "radarr"
+  bypass-category: "bypass"
+Deluge:
+  sickbeard-label: "sickbeard"
+  sickrage-label: "sickrage"
+  sonarr-label: "sonarr"
+  radarr-label: "radarr"
+  bypass-label: "bypass"
+  convert: True
+  host: "localhost"
+  port: "58846"
+  remove: False
+qBittorrent:
+  sickbeard-label: "sickbeard"
+  sickrage-label: "sickrage"
+  sonarr-label: "sonarr"
+  radarr-label: "radarr"
+  bypass-label: "bypass"
+  convert: True
+  host: "localhost"
+  port: "8080"
+  ssl: False
+uTorrent:
+  sickbeard-label: "sickbeard"
+  sickrage-label: "sickrage"
+  sonarr-label: "sonarr"
+  radarr-label: "radarr"
+  bypass-label: "bypass"
+  convert: True
+  webui: False
+  host: "localhost"
+  ssl: False
+  port: "8080"
+Plex:
+  host: "localhost"
+  port: "32400"
+  refresh: False
+  ssl: True
+  ignore-certs: False
