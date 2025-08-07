@@ -205,6 +205,7 @@ $RECYCLE.BIN/
 #############
 
 *.py[co]
+.conda/
 
 # Packages
 *.egg
@@ -238,3 +239,5 @@ pip-log.txt
 ## VS Code
 #################
 .vscode
+history.txt
+sickbeard_mp4_automator.7z
