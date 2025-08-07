@@ -84,7 +84,7 @@ try:
     from resources.mediaprocessor import MediaProcessor
     from resources.log import getLogger
     from autoprocess import autoProcessTV, autoProcessTVSR, sonarr, radarr
-    from resources.metadata import Metadata, MediaType
+    
 except ImportError:
     print("[ERROR] Wrong path to sickbeard_mp4_automator: " + os.environ['NZBPO_MP4_FOLDER'])
     print("[ERROR] %s" % traceback.print_exc())
@@ -255,6 +255,9 @@ if 'NZBOP_SCRIPTDIR' in os.environ and not os.environ['NZBOP_VERSION'][0:5] < '1
         #DEBUG#print "Sickrage Processing Activated"
         autoProcessTVSR.processEpisode(path, settings, nzb, pathMapping=path_mapping)
         sys.exit(POSTPROCESS_SUCCESS)
+    elif [x for x in bypass if x.startswith(category)]:
+        #DEBUG#print "Bypass Further Processing"
+        sys.exit(POSTPROCESS_NONE)
     elif (category in bypass):
         #DEBUG#print "Bypass Further Processing"
         sys.exit(POSTPROCESS_NONE)
