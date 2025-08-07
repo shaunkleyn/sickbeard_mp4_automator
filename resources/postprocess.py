@@ -55,6 +55,8 @@ class PostProcessor:
 
     def run_scripts(self):
         self.log.debug("Running scripts.")
+        self.log.debug("Environment variables:")
+        self.log.debug(json.dumps(self.post_process_environment, indent=4))
         for script in self.scripts:
             try:
                 command = self.run_script_command(script)
@@ -68,6 +70,8 @@ class PostProcessor:
                 self.log.exception("Failed to execute script %s." % script)
 
     def run_script_command(self, script):
+        # return Popen([str(script)], shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=self.post_process_environment,
+        #              close_fds=(os.name != 'nt'))
         if script.endswith('.py'):
             return subprocess.Popen(f'python {str(script)}', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.post_process_environment)
         else: 

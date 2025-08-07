@@ -166,9 +166,9 @@ class AudioCodec(BaseCodec):
                 del safe['language']
 
         if 'source' in safe:
-            s = str(safe['source'])
+            s = safe['source']
         else:
-            s = str(0)
+            s = 0
 
         if 'filter' in safe:
             x = safe['filter']
@@ -189,7 +189,7 @@ class AudioCodec(BaseCodec):
         if 'path' in safe:
             optlist.extend(['-i', str(safe['path'])])
         if 'map' in safe:
-            optlist.extend(['-map', s + ':' + str(safe['map'])])
+            optlist.extend(['-map', str(s) + ':' + str(safe['map'])])
         if 'channels' in safe:
             optlist.extend(['-ac:a:' + stream, str(safe['channels'])])
         if 'bitrate' in safe:
@@ -255,9 +255,9 @@ class SubtitleCodec(BaseCodec):
                 del safe['language']
 
         if 'source' in safe:
-            s = str(safe['source'])
+            s = safe['source']
         else:
-            s = str(0)
+            s = 0
 
         if 'disposition' in safe:
             if len(safe['disposition'].strip()) < 1:
@@ -273,7 +273,7 @@ class SubtitleCodec(BaseCodec):
         optlist.extend(['-c:s:' + stream, self.ffmpeg_codec_name])
         stream = str(stream)
         if 'map' in safe:
-            optlist.extend(['-map', s + ':' + str(safe['map'])])
+            optlist.extend(['-map', str(s) + ':' + str(safe['map'])])
         if 'path' in safe:
             optlist.extend(['-i', str(safe['path'])])
         if 'title' in safe:
@@ -597,11 +597,11 @@ class AudioCopyCodec(BaseCodec):
         optlist = []
         optlist.extend(['-c:a:' + stream, 'copy'])
         if 'source' in safe:
-            s = str(safe['source'])
+            s = safe['source']
         else:
-            s = str(0)
+            s = 0
         if 'map' in safe:
-            optlist.extend(['-map', s + ':' + str(safe['map'])])
+            optlist.extend(['-map', str(s) + ':' + str(safe['map'])])
         if 'bsf' in safe:
             optlist.extend(['-bsf:a:' + stream, str(safe['bsf'])])
         if 'title' in safe:
@@ -645,11 +645,11 @@ class VideoCopyCodec(BaseCodec):
                 del safe['title']
 
         if 'source' in safe:
-            s = str(safe['source'])
+            s = safe['source']
         else:
-            s = str(0)
+            s = 0
         if 'map' in safe:
-            optlist.extend(['-map', s + ':' + str(safe['map'])])
+            optlist.extend(['-map', str(s) + ':' + str(safe['map'])])
         if 'fps' in safe:
             optlist.extend(['-r:v', str(safe['fps'])])
         if 'bsf' in safe:
@@ -696,11 +696,11 @@ class SubtitleCopyCodec(BaseCodec):
         optlist = []
         optlist.extend(['-c:s:' + stream, 'copy'])
         if 'source' in safe:
-            s = str(safe['source'])
+            s = safe['source']
         else:
-            s = str(0)
+            s = 0
         if 'map' in safe:
-            optlist.extend(['-map', s + ':' + str(safe['map'])])
+            optlist.extend(['-map', str(s) + ':' + str(safe['map'])])
         if 'title' in safe:
             optlist.extend(['-metadata:s:s:' + stream, "title=" + str(safe['title'])])
             optlist.extend(['-metadata:s:s:' + stream, "handler_name=" + str(safe['title'])])
@@ -740,11 +740,11 @@ class AttachmentCopyCodec(BaseCodec):
         if 'mimetype' in safe:
             optlist.extend(['-metadata:s:t:' + stream, "mimetype=" + str(safe['mimetype'])])
         if 'source' in safe:
-            s = str(safe['source'])
+            s = safe['source']
         else:
-            s = str(0)
+            s = 0
         if 'map' in safe:
-            optlist.extend(['-map', s + ':' + str(safe['map'])])
+            optlist.extend(['-map', str(s) + ':' + str(safe['map'])])
         return optlist
 
 
@@ -1718,7 +1718,7 @@ class NVEncH265Codec(H265Codec):
         elif 'decode_device' in safe:
             optlist.extend(['-vf', 'hwdownload,format=nv12,hwupload'])
 
-        fmtstr = ':format=%s,hwdownload' % (safe['nvenc_pix_fmt']) if 'nvenc_pix_fmt' in safe else ""
+        fmtstr = ':format=%s' % (safe['nvenc_pix_fmt']) if 'nvenc_pix_fmt' in safe else ""
 
         if 'nvenc_wscale' in safe and 'nvenc_hscale' in safe:
             optlist.extend(['-vf', '%s=w=%s:h=%s%s' % (self.scale_filter, safe['nvenc_wscale'], safe['nvenc_hscale'], fmtstr)])
@@ -1727,7 +1727,7 @@ class NVEncH265Codec(H265Codec):
         elif 'nvenc_hscale' in safe:
             optlist.extend(['-vf', '%s=w=trunc((oh*a)/2)*2:h=%s%s' % (self.scale_filter, safe['nvenc_hscale'], fmtstr)])
         elif fmtstr:
-            optlist.extend(['-vf', fmtstr[1:]])
+            optlist.extend(['-vf', '%s=%s' % (self.scale_filter, fmtstr[1:])])
         return optlist
 
 
@@ -1962,6 +1962,27 @@ class RAV1ECodec(AV1Codec):
     ffmpeg_codec_name = 'librav1e'
 
 
+class AV1QSVCodec(AV1Codec):
+    """
+    QSV AV1 Codec
+    """
+    codec_name = 'av1qsv'
+    ffmpeg_codec_name = 'av1_qsv'
+
+class AV1VAAPICodec(AV1Codec):
+    """
+    AV1 VAAPI Codec
+    """
+    codec_name = 'av1vaapi'
+    ffmpeg_codec_name = 'av1_vaapi'
+
+class NVEncAV1Codec(AV1Codec):
+    """
+    NVEnc AV1 Codec
+    """
+    codec_name = 'av1nvenc'
+    ffmpeg_codec_name = 'av1_nvenc'
+
 class Vp9QSVCodec(Vp9Codec):
     """
     Google VP9 QSV video codec.
@@ -2150,7 +2171,7 @@ video_codec_list = [
     FlvCodec,
     Mpeg1Codec,
     Mpeg2Codec,
-    AV1Codec, SVTAV1Codec, RAV1ECodec
+    AV1Codec, SVTAV1Codec, RAV1ECodec, AV1QSVCodec, AV1VAAPICodec, NVEncAV1Codec
 ]
 
 subtitle_codec_list = [

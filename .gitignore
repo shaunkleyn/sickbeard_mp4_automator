@@ -210,6 +210,7 @@ $RECYCLE.BIN/
 # Packages
 *.egg
 *.egg-info
+.venv/
 venv/
 env/
 dist/

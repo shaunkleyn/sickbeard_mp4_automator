@@ -107,9 +107,15 @@ class Converter(object):
             for x in y:
                 if not os.path.exists(x):
                     raise ConverterError('Source file does not exist')
-                if 'sub-encoding' in opt:
-                    sindex = opt['source'].index(x)
-                    if len([x for x in opt.get('subtitle', []) if x.get('source') == sindex]) > 0:
+
+                # Creates the new nested dictionary to preserve backwards compatibility
+                if 'subtitle' in opt and isinstance(opt['subtitle'], dict):
+                    opt['subtitle'] = [opt['subtitle']]
+
+                sindex = opt['source'].index(x)
+                if any(s.get("source", 0) == sindex for s in opt["subtitle"]):
+                    source_options.append('-fix_sub_duration')
+                    if 'sub-encoding' in opt:
                         source_options.extend(['-sub_charenc', opt['sub-encoding']])
                 source_options.extend(['-i', x])
 
@@ -117,7 +123,7 @@ class Converter(object):
         if 'audio' in opt:
             y = opt['audio']
 
-            # Creates the new nested dictionary to preserve backwards compatability
+            # Creates the new nested dictionary to preserve backwards compatibility
             if isinstance(y, dict):
                 y = [y]
 
@@ -137,7 +143,7 @@ class Converter(object):
         if 'subtitle' in opt:
             y = opt['subtitle']
 
-            # Creates the new nested dictionary to preserve backwards compatability
+            # Creates the new nested dictionary to preserve backwards compatibility
             if isinstance(y, dict):
                 y = [y]
 
@@ -157,7 +163,7 @@ class Converter(object):
         if 'attachment' in opt:
             y = opt['attachment']
 
-            # Creates the new nested dictionary to preserve backwards compatability
+            # Creates the new nested dictionary to preserve backwards compatibility
             if isinstance(y, dict):
                 y = [y]
 
@@ -204,7 +210,7 @@ class Converter(object):
 
         return optlist
 
-    def tag(self, infile, metadata={}, coverpath=None, streaming=0):
+    def tag(self, infile, metadata={}, coverpath=None, cues_to_front=False):
         """
         Tag media file (infile) with metadata dictionary and optional cover art
         """
@@ -231,10 +237,10 @@ class Converter(object):
         for k in metadata:
             opts.extend(["-metadata", "%s=%s" % (k, metadata[k])])
 
-        if streaming:
-            opts.extend(['-reserve_index_space', "%dk" % (streaming)])
+        if cues_to_front:
+            opts.extend(['-cues_to_front', "true"])
 
-        for timecode, debug in self.ffmpeg.convert(outfile, opts):
+        for timecode, debug in self.ffmpeg.convert(outfile, opts, timeout=0):
             yield int((100.0 * timecode) / info.format.duration), debug
         os.remove(infile)
 
